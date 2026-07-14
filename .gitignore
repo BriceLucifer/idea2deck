@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Generated decks and intermediate output
+out/
+**/out/
+
+# Test and package artifacts
+coverage/
+*.tgz
+*.log
+
+# Local environment and OS files
+.env
+.env.*
+!.env.example
+.DS_Store

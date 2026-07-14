@@ -1,0 +1,24 @@
+{
+  "name": "idea-to-deck-skill-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Codex skill runtime for turning multimodal ideas into editable PPTX and high-quality PDF decks.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs --install",
+    "check": "node scripts/setup.mjs --check",
+    "build:deck": "node src/run.mjs",
+    "test": "node --test src/__tests__/*.test.mjs",
+    "test:integration": "node --test src/__tests__/pipeline.integration.mjs"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "pdf-lib": "^1.17.1",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.34.0",
+    "zod": "^4.0.0"
+  }
+}
