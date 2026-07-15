@@ -1,6 +1,6 @@
 # Optional Subagents
 
-Read this reference only when the user enables subagents during kickoff.
+Read this reference only when the user requests subagents or the Deck Plan proposes named lanes that the user approves.
 
 Use no more than three bounded, non-overlapping lanes:
 

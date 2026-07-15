@@ -3,8 +3,11 @@ import { intersectionArea, isInsideCanvas } from "../shared/layout.mjs";
 function approximateTextCapacity(element) {
   if (element.type !== "text") return null;
   const fontSize = element.style?.fontSize ?? 28;
-  const charsPerLine = Math.max(1, Math.floor(element.w / (fontSize * 0.55)));
-  const lines = Math.max(1, Math.floor(element.h / (fontSize * 1.25)));
+  const margin = (element.style?.margin ?? 0) * 2;
+  const width = Math.max(1, element.w - margin * 2);
+  const height = Math.max(1, element.h - margin * 2);
+  const charsPerLine = Math.max(1, Math.floor(width / (fontSize * 2 * 0.55)));
+  const lines = Math.max(1, Math.floor(height / (fontSize * 2 * 1.15)));
   return charsPerLine * lines;
 }
 
@@ -34,7 +37,7 @@ export function checkLayout(deck) {
       for (let j = i + 1; j < ordered.length; j += 1) {
         const a = ordered[i];
         const b = ordered[j];
-        if (a.allowOverlap || b.allowOverlap || a.zIndex !== b.zIndex) continue;
+        if (a.allowOverlap || b.allowOverlap) continue;
         const overlap = intersectionArea(a, b);
         const smaller = Math.min(a.w * a.h, b.w * b.h);
         if (overlap > smaller * 0.15) {

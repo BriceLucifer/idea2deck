@@ -4,9 +4,13 @@ import { pptxColor, resolveTheme } from "../shared/theme.mjs";
 
 function imageSizing(element) {
   const box = boxToPptx(element);
-  return element.fit === "contain"
-    ? { path: element.path, ...box, sizing: "contain" }
-    : { path: element.path, ...box, sizing: "cover" };
+  const source = /^data:/i.test(element.path) ? { data: element.path } : { path: element.path };
+  return {
+    ...source,
+    altText: element.alt,
+    ...box,
+    sizing: { type: element.fit, w: box.w, h: box.h },
+  };
 }
 
 function chartType(pptx, type) {
@@ -31,7 +35,8 @@ function renderElement({ pptx, slide, element, theme }) {
       italic: element.style.italic,
       align: element.style.align,
       valign: element.style.valign,
-      margin: element.style.margin / 72,
+      margin: element.style.margin,
+      lineSpacing: element.style.fontSize * (element.style.lineHeight ?? 1.15),
       breakLine: element.style.breakLine,
       fit: "shrink",
     });
@@ -42,7 +47,18 @@ function renderElement({ pptx, slide, element, theme }) {
     return;
   }
   if (element.type === "table") {
-    slide.addTable(element.rows, {
+    const rows = element.rows.map((row, rowIndex) => row.map((value) => ({
+      text: String(value),
+      options: rowIndex < element.headerRows ? {
+        bold: true,
+        color: pptxColor(element.style.headerColor, "FFFFFF"),
+        fill: { color: pptxColor(element.style.headerFill, theme.accent) },
+      } : {
+        color: pptxColor(element.style.color, theme.foreground),
+        fill: { color: pptxColor(element.style.rowFill, theme.background) },
+      },
+    })));
+    slide.addTable(rows, {
       ...box,
       fontFace: theme.fontBody,
       fontSize: element.style.fontSize,
@@ -51,7 +67,8 @@ function renderElement({ pptx, slide, element, theme }) {
       fill: pptxColor(theme.background),
       bold: false,
       autoFit: false,
-      margin: 0.08,
+      margin: element.style.margin,
+      valign: "mid",
       rowH: box.h / Math.max(1, element.rows.length),
     });
     return;
@@ -65,6 +82,7 @@ function renderElement({ pptx, slide, element, theme }) {
     }));
     slide.addChart(chartType(pptx, element.chartType), data, {
       ...box,
+      barDir: element.chartType === "bar" ? "bar" : "col",
       showLegend: element.showLegend,
       showTitle: false,
       showValue: false,
@@ -73,6 +91,12 @@ function renderElement({ pptx, slide, element, theme }) {
       valAxisLabelFontFace: theme.fontBody,
       chartColors: element.series.map((series, index) =>
         pptxColor(series.color, index === 0 ? theme.accent : theme.accent2)),
+      chartArea: { fill: { color: pptxColor(theme.background), transparency: 100 }, border: { color: pptxColor(theme.background), transparency: 100 } },
+      plotArea: { fill: { color: pptxColor(theme.background), transparency: 100 }, border: { color: pptxColor(theme.background), transparency: 100 } },
+      catAxisLabelColor: pptxColor(theme.muted),
+      valAxisLabelColor: pptxColor(theme.muted),
+      legendColor: pptxColor(theme.muted),
+      legendFontFace: theme.fontBody,
     });
     return;
   }
@@ -88,7 +112,12 @@ function renderElement({ pptx, slide, element, theme }) {
       flipH: element.flipH,
       flipV: element.flipV,
       fill: element.fill ? { color: pptxColor(element.fill) } : { color: pptxColor(theme.background), transparency: 100 },
-      line: { color: pptxColor(element.stroke, theme.foreground), pt: element.strokeWidth },
+      line: {
+        color: pptxColor(element.stroke, theme.foreground),
+        width: element.strokeWidth,
+        beginArrowType: element.beginArrowType,
+        endArrowType: element.endArrowType,
+      },
     });
     return;
   }

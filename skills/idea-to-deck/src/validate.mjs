@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { assertBuildApproved, parseDeckSpec } from "./schema/deck-spec.mjs";
 import { assertImages } from "./qa/check-images.mjs";
 import { assertLayout } from "./qa/check-layout.mjs";
+import { assertTextFit } from "./qa/check-text.mjs";
 
 function parseArgs(argv) {
   const specIndex = argv.indexOf("--spec");
@@ -18,11 +19,12 @@ export async function validateSpecFile(specPath) {
   const deck = parseDeckSpec(raw);
   const layout = assertLayout(deck);
   const images = await assertImages(deck);
+  const text = await assertTextFit(deck);
   return {
     valid: true,
     slides: deck.slides.length,
     elementCounts: deck.slides.map((slide) => slide.elements.length),
-    warnings: [...layout.warnings, ...images.warnings],
+    warnings: [...layout.warnings, ...images.warnings, ...text.warnings],
   };
 }
 

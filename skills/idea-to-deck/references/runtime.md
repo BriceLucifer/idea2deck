@@ -11,7 +11,7 @@ Runtime entry:  <SKILL_DIR>/src/run.mjs
 Spec preflight: <SKILL_DIR>/src/validate.mjs
 Runtime setup:  <SKILL_DIR>/scripts/setup.mjs
 Schema:         <SKILL_DIR>/src/schema/deck-spec.mjs
-Final output:   <current-workspace>/out
+Final output:   <current-workspace>/out/<deck-slug>.{pptx,pdf}
 Intermediates:  <system-temp>/idea-to-deck-<task-id>/
 ```
 
@@ -45,6 +45,8 @@ Use this entry point instead of composing ad hoc imports or guessing schema expo
 
 ## Build workspace
 
-Create a dedicated system temporary directory for DeckSpec, source extracts, generated images, preview pages, QA reports, and temporary PPTX/PDF files. Copy only the verified final PPTX and PDF into the active workspace's `out/` directory.
+Create a dedicated system temporary directory for DeckSpec, source extracts, generated images, preview pages, QA reports, and temporary PPTX/PDF files. Use a unique review directory for every build attempt. Publish only the verified current slug's PPTX/PDF pair into the active workspace's `out/` directory through the bundled runner.
+
+Inspect `out/` before choosing the slug. If the same pair already exists and replacement was not explicitly approved, choose a collision-safe slug such as `<slug>-2`. Never delete, overwrite, or validate unrelated output entries. The runner stages and rolls back the current pair so a failed publish does not leave mixed old/new files.
 
 Remove temporary artifacts after successful verification, then explicitly verify that the task directory no longer exists before reporting cleanup. On failure, retain only the minimum diagnostic material needed to explain or repair the blocker.

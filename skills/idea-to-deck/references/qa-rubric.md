@@ -10,7 +10,7 @@ Read this reference before accepting any final build.
 - invalid PPTX archive or unexpected slide count
 - missing final PPTX or PDF
 - page count or order mismatch
-- non-deliverable file inside `out/`
+- missing or partial current-slug output pair
 
 ## Visual review per slide
 
@@ -62,7 +62,7 @@ Read this reference before accepting any final build.
 - Visual system is consistent but not mechanically repetitive.
 - Section transitions and pacing feel deliberate.
 - Similar elements use consistent treatment.
-- PPTX and PDF represent the same slide sequence.
+- PPTX and PDF represent the same slide sequence and communication design; do not assume pixel identity between native Office rendering and the reviewed 4K PDF pages.
 
 ## Repair priority
 

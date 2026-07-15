@@ -1,18 +1,49 @@
 # Idea to Deck
 
-A self-contained Codex Skill for turning text, Markdown, images, PDFs, DOCX files, and existing presentations into editable 16:9 PowerPoint decks and matching high-quality PDFs.
+`idea-to-deck` is a Codex Skill that turns text, Markdown, images, PDFs, DOCX files, and existing presentations into editable 16:9 PowerPoint decks and coordinated high-quality PDFs.
 
-Every new deck starts with a short kickoff confirmation covering the inferred objective, audience, presentation context, length, visual direction, and optional subagents. The Skill then presents a slide-by-slide Deck Plan, waits for explicit approval, optionally uses image generation, renders native PowerPoint content with PptxGenJS, and performs deterministic plus visual QA.
+The Skill first understands the objective, audience, language, source material, and visual direction. For a complete request, it presents one combined Brief + Deck Plan and waits for explicit approval before building. When essential information is missing, it asks no more than three focused questions first. Optional subagent lanes and image generation can be enabled in the same approval.
 
-## Install for Codex
+## Requirements
 
-Install globally for Codex directly from GitHub:
+- Codex
+- Node.js 20 or newer
+- `npx` and network access during installation
+
+The generated PowerPoint uses native PptxGenJS text, tables, charts, shapes, and connectors wherever practical, so the core content remains editable.
+
+## Project installation
+
+Choose project installation when the Skill should be available only inside one repository or when a team wants to keep the same Skill version with the project.
+
+Run the command from the project root:
 
 ```bash
-npx skills add BriceLucifer/idea2deck --skill idea-to-deck --agent codex --global --copy --yes
+npx skills add BriceLucifer/idea2deck \
+  --skill idea-to-deck \
+  --agent codex \
+  --copy \
+  --yes
 ```
 
-The same command expanded for readability:
+It installs the Skill here:
+
+```text
+<current-project>/.agents/skills/idea-to-deck/
+```
+
+Project installation means:
+
+- The Skill is discovered for Codex tasks opened in that project.
+- The installed copy can be committed when the team wants to share and pin it.
+- Runtime dependencies stay under the installed Skill directory, not in the project's root `node_modules`.
+- Generated decks are written to `<current-project>/out/`.
+
+Start a new Codex task after installation so Codex discovers the Skill cleanly.
+
+## Global installation
+
+Choose global installation for a personal setup that should work across all Codex workspaces on the current machine.
 
 ```bash
 npx skills add BriceLucifer/idea2deck \
@@ -23,32 +54,58 @@ npx skills add BriceLucifer/idea2deck \
   --yes
 ```
 
-Start a new Codex task after installation, then invoke the Skill explicitly or describe a deck request naturally:
-
-```text
-$idea-to-deck Turn these source materials into an investor presentation.
-```
-
-The first build may ask permission to install the bundled Node.js dependencies. This is a one-time setup for the local PptxGenJS runtime.
-
-## Installation scope and locations
-
-The command above includes `--global`, so the Skill is installed for the current user and is available from every Codex workspace.
+It installs the Skill for the current user at:
 
 ```text
 ${CODEX_HOME}/skills/idea-to-deck/
 ```
 
-When `CODEX_HOME` is not set, Codex uses:
+When `CODEX_HOME` is not set, the default location is:
 
 ```text
 ~/.codex/skills/idea-to-deck/
 ```
 
-The installed folder contains the complete Skill and its runtime:
+Global installation means:
+
+- The Skill is available from every Codex workspace for the current user.
+- The installation is personal and is not automatically shared with a project or team.
+- Runtime dependencies stay inside the global Skill directory.
+- Generated decks still go to the active workspace's `out/` directory, never to `~/.codex/skills/`.
+
+Start a new Codex task after installation so Codex discovers the Skill cleanly.
+
+## Which installation should I use?
+
+Use project installation for repository-specific or team-shared workflows. Use global installation when you want one personal installation available everywhere. Installing both is normally unnecessary; prefer the project copy when a repository deliberately carries one.
+
+`--copy` is important in both commands. It installs `SKILL.md` together with its references, scripts, source code, package manifest, and lockfile. Do not distribute `node_modules`; the Skill installs platform-appropriate dependencies on the user's machine.
+
+## First use
+
+The first build may ask for permission to install the bundled Node.js dependencies. This one-time setup creates `node_modules` inside the installed Skill directory. It does not modify the active project's package manifest.
+
+You can invoke the Skill explicitly:
 
 ```text
-~/.codex/skills/idea-to-deck/
+$idea-to-deck Turn these source materials into an investor presentation.
+```
+
+You can also describe the request naturally. Codex will use the Skill when the request is clearly about creating, redesigning, or rebuilding a presentation.
+
+The normal interaction is:
+
+1. Provide an idea or attach source files.
+2. Review the Brief + Deck Plan.
+3. Reply `approve and build`, optionally enabling image generation or named subagent lanes.
+4. Receive the final PPTX and PDF in the workspace `out/` directory.
+
+## Files and output locations
+
+The installed Skill contains instructions and runtime code:
+
+```text
+<skill-directory>/
 ├── SKILL.md
 ├── agents/
 ├── references/
@@ -59,56 +116,43 @@ The installed folder contains the complete Skill and its runtime:
 └── node_modules/       # created by the one-time runtime setup
 ```
 
-To install the Skill only for the current project, omit `--global`:
-
-```bash
-npx skills add BriceLucifer/idea2deck \
-  --skill idea-to-deck \
-  --agent codex \
-  --copy \
-  --yes
-```
-
-This installs it at:
+Only final deliverables are published to the active workspace:
 
 ```text
-<current-project>/.agents/skills/idea-to-deck/
-```
-
-Choose the installation scope according to how the Skill will be used:
-
-| Scope | Location | Recommended use |
-| --- | --- | --- |
-| Global | `~/.codex/skills/idea-to-deck/` | Personal installation across all projects |
-| Project | `./.agents/skills/idea-to-deck/` | Repository-specific or team-shared installation |
-
-Use `--copy` so `SKILL.md`, references, runtime code, setup script, and lockfile are installed together. Do not distribute or copy a local `node_modules` directory; the setup script installs platform-appropriate dependencies on the user's machine.
-
-## Runtime and output locations
-
-The installed Skill directory contains code and dependencies, not user deliverables. Generated files are written to the active Codex workspace:
-
-```text
-<current-workspace>/out/
+<active-workspace>/out/
 ├── <deck-slug>.pptx
 └── <deck-slug>.pdf
 ```
 
-Intermediate DeckSpec files, source extracts, generated images, previews, QA reports, logs, and caches stay in a system temporary directory and are cleaned after a successful run. They are never written to `out/`.
+DeckSpec files, extracted sources, generated images, preview PNGs, QA reports, logs, and caches use a system temporary directory. A successful build cleans that directory. Each build publishes only its own PPTX/PDF pair and leaves unrelated files in `out/` untouched.
 
-In summary:
+## Updating or uninstalling
+
+To update, run the installation command for the same scope again. If the installer reports that the destination already exists, remove only the installed `idea-to-deck` directory for that scope and rerun the command. Start a new Codex task afterward.
+
+To uninstall a project copy, remove:
 
 ```text
-~/.codex/skills/idea-to-deck/  -> Skill instructions and runtime
-<current-workspace>/out/       -> final PPTX and PDF
-<system temporary directory>/  -> DeckSpec, assets, previews, and QA
+<project>/.agents/skills/idea-to-deck/
 ```
 
-After installing or updating the Skill, start a new Codex task so the new Skill definition is discovered cleanly.
+To uninstall a global copy, remove:
 
-## Local development
+```text
+${CODEX_HOME}/skills/idea-to-deck/
+```
 
-The canonical Skill lives under `skills/idea-to-deck`. The `.agents/skills/idea-to-deck` link exposes the same folder to Codex while working in this repository.
+When `CODEX_HOME` is not set, remove:
+
+```text
+~/.codex/skills/idea-to-deck/
+```
+
+Removing the Skill does not remove decks already generated in workspace `out/` directories.
+
+## Repository development
+
+The canonical Skill source in this repository lives under `skills/idea-to-deck`. The local `.agents/skills/idea-to-deck` symlink exposes the same folder to Codex without duplicating it.
 
 ```bash
 npm --prefix skills/idea-to-deck ci
@@ -116,4 +160,4 @@ npm --prefix skills/idea-to-deck test
 npm --prefix skills/idea-to-deck run test:integration
 ```
 
-Runtime code stays inside the Skill's `src/` directory. User-facing deck files are written to the active workspace's `out/` directory. DeckSpec, generated images, previews, and QA reports remain temporary.
+Runtime code and tests stay inside the Skill. User-facing deck files belong in the repository-level `out/` directory; all other build artifacts remain temporary.

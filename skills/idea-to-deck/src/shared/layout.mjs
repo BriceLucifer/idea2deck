@@ -5,6 +5,7 @@ export const PPTX_HEIGHT_IN = 7.5;
 export const HIGH_QUALITY_SCALE = 2;
 
 export const pxToIn = (value) => value / 144;
+export const ptToLogicalPx = (value) => value * 2;
 
 export function normalizeBox(box) {
   return {
@@ -38,8 +39,9 @@ export function isInsideCanvas(box) {
   return (
     value.x >= 0 &&
     value.y >= 0 &&
-    value.w > 0 &&
-    value.h > 0 &&
+    value.w >= 0 &&
+    value.h >= 0 &&
+    (value.w > 0 || value.h > 0) &&
     value.x + value.w <= LOGICAL_WIDTH &&
     value.y + value.h <= LOGICAL_HEIGHT
   );

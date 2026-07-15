@@ -30,6 +30,7 @@ const textElement = z.object({
     align: z.enum(["left", "center", "right"]).default("left"),
     valign: z.enum(["top", "mid", "bottom"]).default("top"),
     margin: z.number().nonnegative().default(0),
+    lineHeight: z.number().min(0.8).max(2).default(1.15),
     breakLine: z.boolean().default(false),
   }).default({}),
 });
@@ -52,9 +53,20 @@ const tableElement = z.object({
   style: z.object({
     fontSize: z.number().positive().default(18),
     color: z.string().optional(),
+    headerColor: z.string().optional(),
     headerFill: z.string().optional(),
+    rowFill: z.string().optional(),
     borderColor: z.string().optional(),
+    margin: z.number().nonnegative().default(6),
   }).default({}),
+}).superRefine((element, context) => {
+  const columns = element.rows[0]?.length ?? 0;
+  if (columns === 0 || element.rows.some((row) => row.length !== columns)) {
+    context.addIssue({ code: "custom", path: ["rows"], message: "table rows must form a non-empty rectangle" });
+  }
+  if (element.headerRows > element.rows.length) {
+    context.addIssue({ code: "custom", path: ["headerRows"], message: "headerRows cannot exceed row count" });
+  }
 });
 
 const chartElement = z.object({
@@ -68,12 +80,25 @@ const chartElement = z.object({
     color: z.string().optional(),
   })).min(1),
   showLegend: z.boolean().default(true),
+}).superRefine((element, context) => {
+  element.series.forEach((series, index) => {
+    if (series.values.length !== element.categories.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["series", index, "values"],
+        message: "series values must match category count",
+      });
+    }
+  });
+  if (["pie", "doughnut"].includes(element.chartType) && element.series.length !== 1) {
+    context.addIssue({ code: "custom", path: ["series"], message: `${element.chartType} charts require exactly one series` });
+  }
 });
 
 const shapeElement = z.object({
   type: z.literal("shape"),
   ...common,
-  shape: z.enum(["rect", "roundRect", "ellipse", "line"]),
+  shape: z.enum(["rect", "roundRect", "ellipse"]),
   fill: z.string().optional(),
   stroke: z.string().optional(),
   strokeWidth: z.number().nonnegative().default(1),
@@ -82,12 +107,38 @@ const shapeElement = z.object({
   flipV: z.boolean().default(false),
 });
 
-export const elementSchema = z.discriminatedUnion("type", [
+const arrowType = z.enum(["none", "arrow", "diamond", "oval", "stealth", "triangle"]);
+
+const lineElement = z.object({
+  type: z.literal("shape"),
+  id: z.string().min(1),
+  x: z.number().finite().nonnegative(),
+  y: z.number().finite().nonnegative(),
+  w: z.number().finite().nonnegative(),
+  h: z.number().finite().nonnegative(),
+  zIndex: z.number().int().default(1),
+  allowOverlap: z.boolean().default(false),
+  sourceId: z.string().optional(),
+  editable: z.boolean().default(true),
+  shape: z.literal("line"),
+  stroke: z.string().optional(),
+  strokeWidth: z.number().nonnegative().default(1),
+  flipH: z.boolean().default(false),
+  flipV: z.boolean().default(false),
+  beginArrowType: arrowType.default("none"),
+  endArrowType: arrowType.default("none"),
+}).refine((element) => element.w > 0 || element.h > 0, {
+  message: "a line must have non-zero width or height",
+  path: ["w"],
+});
+
+export const elementSchema = z.union([
   textElement,
   imageElement,
   tableElement,
   chartElement,
   shapeElement,
+  lineElement,
 ]);
 
 export const deckSpecSchema = z.object({
@@ -133,6 +184,25 @@ export const deckSpecSchema = z.object({
     background: z.string().optional(),
     elements: z.array(elementSchema),
   })).min(1).max(40),
+}).superRefine((deck, context) => {
+  const sourceIds = new Set();
+  deck.sources.forEach((source, index) => {
+    if (sourceIds.has(source.id)) context.addIssue({ code: "custom", path: ["sources", index, "id"], message: "duplicate source id" });
+    sourceIds.add(source.id);
+  });
+  const slideIds = new Set();
+  deck.slides.forEach((slide, slideIndex) => {
+    if (slideIds.has(slide.id)) context.addIssue({ code: "custom", path: ["slides", slideIndex, "id"], message: "duplicate slide id" });
+    slideIds.add(slide.id);
+    const elementIds = new Set();
+    slide.elements.forEach((element, elementIndex) => {
+      if (elementIds.has(element.id)) context.addIssue({ code: "custom", path: ["slides", slideIndex, "elements", elementIndex, "id"], message: "duplicate element id" });
+      elementIds.add(element.id);
+      if (element.sourceId && !sourceIds.has(element.sourceId)) {
+        context.addIssue({ code: "custom", path: ["slides", slideIndex, "elements", elementIndex, "sourceId"], message: "sourceId does not reference a declared source" });
+      }
+    });
+  });
 });
 
 export function parseDeckSpec(input) {

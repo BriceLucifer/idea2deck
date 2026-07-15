@@ -1,4 +1,4 @@
 interface:
   display_name: "Idea to Deck"
   short_description: "Build editable PPTX and polished PDF decks from ideas"
-  default_prompt: "Use $idea-to-deck to confirm my brief, plan the story, and create an editable presentation with a matching PDF."
+  default_prompt: "Use $idea-to-deck to inspect my sources, present a brief and slide plan for approval, and create an editable presentation with a coordinated PDF."

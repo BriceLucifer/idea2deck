@@ -58,7 +58,14 @@ Give each slide:
 
 Supported types are `text`, `image`, `table`, `chart`, and `shape`.
 
-Every element needs exact logical coordinates, positive dimensions, a stable id, a z-index, an overlap policy, and an editability policy.
+Every element needs exact logical coordinates, dimensions, a stable id, a z-index, an overlap policy, and an editability policy.
+
+Use these units consistently:
+
+- geometry `x/y/w/h`: logical pixels on the 1920x1080 canvas
+- `fontSize`, text/table `margin`, and `strokeWidth`: points
+- one point equals two logical pixels on this 144 px/in logical canvas
+- text `lineHeight`: a unitless multiplier, default `1.15`
 
 - Keep text, tables, charts, and simple shapes editable.
 - Mark raster images non-editable.
@@ -66,7 +73,8 @@ Every element needs exact logical coordinates, positive dimensions, a stable id,
 - Keep all boxes inside 1920x1080.
 - Use `cover` only when cropping is intentional and safe.
 - Use `contain` when the full source image must remain visible.
-- For `shape: "line"`, `x/y/w/h` define a positive bounding box. Use `flipV: true` for a bottom-left to top-right line and `flipH: true` to reverse the horizontal direction. Never use negative dimensions.
+- For `shape: "line"`, `x/y/w/h` define a nonnegative bounding box and at least one of `w/h` must be non-zero. Zero height creates an exact horizontal line; zero width creates an exact vertical line. Use `flipV` or `flipH` to select the endpoint direction. Never use negative dimensions.
+- Use `beginArrowType` and `endArrowType` for editable arrowheads. Prefer the authoring helpers in `layout-components.md` over manual connector arithmetic.
 - Place connector endpoints on the actual target boundaries; do not approximate a diagram with visibly floating or broken segments.
 
 ## Authoring order
@@ -82,3 +90,5 @@ Author each slide in this order:
 7. check bounds and likely text fit before rendering
 
 Prefer removing or splitting content over compressing it into an unreadable layout.
+
+The executable schema also rejects duplicate ids, dangling `sourceId` references, non-rectangular tables, impossible header row counts, and chart series whose values do not match their categories.

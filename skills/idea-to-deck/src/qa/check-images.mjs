@@ -13,14 +13,19 @@ export async function checkImages(deck) {
         continue;
       }
       try {
-        const metadata = await sharp(element.path).metadata();
+        const dataMatch = element.path.match(/^data:[^;]+;base64,(.+)$/i);
+        const input = dataMatch ? Buffer.from(dataMatch[1], "base64") : element.path;
+        const metadata = await sharp(input).metadata();
         if (!metadata.width || !metadata.height) {
           errors.push(`${label}: dimensions could not be read`);
           continue;
         }
         const requiredWidth = Math.ceil(element.w * HIGH_QUALITY_SCALE);
         const requiredHeight = Math.ceil(element.h * HIGH_QUALITY_SCALE);
-        if (!element.allowUpscale && (metadata.width < requiredWidth || metadata.height < requiredHeight)) {
+        const needsUpscale = element.fit === "contain"
+          ? metadata.width < requiredWidth && metadata.height < requiredHeight
+          : metadata.width < requiredWidth || metadata.height < requiredHeight;
+        if (!element.allowUpscale && needsUpscale) {
           errors.push(
             `${label}: ${metadata.width}x${metadata.height} is below the ${requiredWidth}x${requiredHeight} high-quality target`,
           );

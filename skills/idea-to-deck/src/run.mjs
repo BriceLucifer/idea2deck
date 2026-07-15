@@ -1,11 +1,13 @@
-import { copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { access, copyFile, mkdir, mkdtemp, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { parseDeckSpec, assertBuildApproved } from "./schema/deck-spec.mjs";
 import { assertImages } from "./qa/check-images.mjs";
 import { assertLayout } from "./qa/check-layout.mjs";
 import { inspectPptx } from "./qa/inspect-pptx.mjs";
 import { assertPreviews } from "./qa/check-previews.mjs";
+import { assertTextFit } from "./qa/check-text.mjs";
+import { inspectPdf } from "./qa/inspect-pdf.mjs";
 import { renderPptx } from "./pptx/render-pptx.mjs";
 import { renderDeckPreviews } from "./preview/render-preview.mjs";
 import { renderPdfFromPreviews } from "./pdf/render-pdf.mjs";
@@ -27,12 +29,44 @@ async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
 }
 
-export async function assertOutContainsOnlyDeliverables(outDir) {
-  const entries = await readdir(outDir, { withFileTypes: true });
-  for (const entry of entries) {
-    if (!entry.isFile() || ![".pptx", ".pdf"].includes(extname(entry.name).toLowerCase())) {
-      throw new Error(`out/ may contain only final PPTX and PDF files; found ${entry.name}`);
-    }
+async function exists(path) {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function assertCurrentDeliverables(outDir, slug) {
+  const files = [`${slug}.pptx`, `${slug}.pdf`];
+  for (const file of files) {
+    const info = await stat(join(outDir, file));
+    if (!info.isFile() || info.size === 0) throw new Error(`Final deliverable is missing or empty: ${file}`);
+  }
+  return files;
+}
+
+async function publishPair({ temporaryPptx, temporaryPdf, finalPptx, finalPdf, outDir }) {
+  const stage = await mkdtemp(join(outDir, ".idea-to-deck-publish-"));
+  const stagedPptx = join(stage, "deck.pptx");
+  const stagedPdf = join(stage, "deck.pdf");
+  const backupPptx = join(stage, "previous.pptx");
+  const backupPdf = join(stage, "previous.pdf");
+  try {
+    await Promise.all([copyFile(temporaryPptx, stagedPptx), copyFile(temporaryPdf, stagedPdf)]);
+    if (await exists(finalPptx)) await rename(finalPptx, backupPptx);
+    if (await exists(finalPdf)) await rename(finalPdf, backupPdf);
+    await rename(stagedPptx, finalPptx);
+    await rename(stagedPdf, finalPdf);
+  } catch (error) {
+    await rm(finalPptx, { force: true });
+    await rm(finalPdf, { force: true });
+    if (await exists(backupPptx)) await rename(backupPptx, finalPptx);
+    if (await exists(backupPdf)) await rename(backupPdf, finalPdf);
+    throw error;
+  } finally {
+    await rm(stage, { recursive: true, force: true });
   }
 }
 
@@ -51,21 +85,34 @@ export async function buildDeck({ specPath, outDir, reviewDir }) {
   try {
     const layoutReport = assertLayout(deck);
     const imageReport = await assertImages(deck);
+    const textReport = await assertTextFit(deck);
     const previews = await renderDeckPreviews(deck, workspace);
     const previewReport = await assertPreviews(previews);
-    await writeFile(join(workspace, "qa-report.json"), JSON.stringify({ layoutReport, imageReport, previewReport }, null, 2));
+    await writeFile(join(workspace, "qa-report.json"), JSON.stringify({ layoutReport, imageReport, textReport, previewReport }, null, 2));
 
     const temporaryPptx = join(workspace, `${deck.deck.slug}.pptx`);
     const temporaryPdf = join(workspace, `${deck.deck.slug}.pdf`);
     await renderPptx(deck, temporaryPptx);
-    await inspectPptx(temporaryPptx, deck.slides.length);
-    await renderPdfFromPreviews(previews, temporaryPdf);
+    const pptxReport = await inspectPptx(temporaryPptx, deck.slides.length, deck);
+    await renderPdfFromPreviews(previews, temporaryPdf, {
+      title: deck.deck.title,
+      subject: deck.deck.objective,
+      author: "idea-to-deck Codex skill",
+    });
+    const pdfReport = await inspectPdf(temporaryPdf, deck.slides.length);
 
     const finalPptx = join(resolvedOut, `${deck.deck.slug}.pptx`);
     const finalPdf = join(resolvedOut, `${deck.deck.slug}.pdf`);
-    await Promise.all([copyFile(temporaryPptx, finalPptx), copyFile(temporaryPdf, finalPdf)]);
-    await assertOutContainsOnlyDeliverables(resolvedOut);
-    return { pptx: finalPptx, pdf: finalPdf, reviewDir: callerOwnsWorkspace ? workspace : undefined };
+    await publishPair({ temporaryPptx, temporaryPdf, finalPptx, finalPdf, outDir: resolvedOut });
+    await assertCurrentDeliverables(resolvedOut, deck.deck.slug);
+    return {
+      pptx: finalPptx,
+      pdf: finalPdf,
+      reviewDir: callerOwnsWorkspace ? workspace : undefined,
+      warnings: [...layoutReport.warnings, ...imageReport.warnings, ...textReport.warnings, ...previewReport.warnings],
+      pptxReport,
+      pdfReport,
+    };
   } finally {
     if (!callerOwnsWorkspace) await rm(workspace, { recursive: true, force: true });
   }

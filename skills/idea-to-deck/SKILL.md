@@ -1,46 +1,31 @@
 ---
 name: idea-to-deck
-description: Convert ideas and multimodal source material into polished, editable 16:9 PowerPoint presentations and matching high-quality PDFs. Use when Codex needs to create, redesign, or rebuild a deck from text, Markdown, images, PDFs, DOCX files, or existing PPTX files; begin every new deck with a short user kickoff; agree on a slide plan; optionally use subagents and image generation; render native content with PptxGenJS; and perform visual QA. Rebuild existing PPTX files as new decks instead of editing their objects in place.
+description: Convert ideas and multimodal source material into polished, editable 16:9 PowerPoint presentations and coordinated high-quality PDFs. Use when Codex needs to create, redesign, or rebuild a deck from text, Markdown, images, PDFs, DOCX files, or existing PPTX files; inspect sources read-only; present an inferred brief and slide plan for explicit approval; optionally use subagents and image generation; render native content with PptxGenJS; and perform deterministic plus visual QA. Rebuild existing PPTX files as new decks instead of editing their objects in place.
 ---
 
 # Idea to Deck
 
 ## Outcome
 
-Turn the user's materials into an approved deck story, an editable PowerPoint, and a visually matching PDF. Keep the interaction simple: ask one short kickoff, propose one Deck Plan, wait for approval, build autonomously, visually check the result, and deliver two files.
+Turn the user's materials into an approved deck story, an editable PowerPoint, and a coordinated PDF. For a complete request, present one combined Brief + Deck Plan, ask once for build approval, then build autonomously. Ask a separate kickoff only when a material decision is genuinely missing.
 
 Default to the user's language, a 16:9 canvas, ten slides, editable native content, high-quality raster assets, and final output in `<current-workspace>/out`.
 
-## Mandatory interaction gates
+## Adaptive approval flow
 
-Never build a new deck directly from the initial request. Every new deck task must pass both gates below.
+Every new deck requires explicit approval of a displayed Deck Plan before building.
 
-### Gate 1: kickoff confirmation
+### Read-only triage
 
-Before planning or building, ask the user one concise kickoff question. Do not skip this gate even when the initial request appears complete.
+Inspect the prompt and relevant available sources only far enough to determine whether the brief is complete and to shape a credible plan. Preserve originals. Use a task-local system temporary directory for any necessary extracts and remove it if planning is cancelled.
 
-Infer sensible answers from the prompt and sources, then ask the user to confirm or correct:
+Do not install dependencies, generate images, author DeckSpec, render files, or write to `out/` during triage.
 
-```text
-Before I plan the deck, please confirm or correct:
+Treat the brief as complete when the objective and audience are clear or safely inferable; context, length, and visual direction are supplied or covered by sensible defaults; and no inaccessible source or contradiction blocks planning.
 
-1. Objective and audience: <inferred answer>
-2. Presentation context and length: <inferred answer>
-3. Visual direction: <inferred answer>
-4. Optional subagents: yes or no
+### Complete request
 
-Reply "use these defaults" or change any item.
-```
-
-Use a structured user-input tool when one is available; otherwise ask in plain text. Ask no more than four compact items. When the user already supplied an answer, show it for confirmation instead of asking them to repeat it.
-
-Stop and wait for the reply. Do not inspect unnecessary sources, create DeckSpec, install dependencies, generate images, or render files before this response.
-
-Do not repeat the kickoff for revisions to the same deck. Resume from the earliest affected workflow stage instead.
-
-### Gate 2: Deck Plan approval
-
-After the kickoff response and source analysis, present a concise Deck Plan containing:
+Present a combined Brief + Deck Plan containing:
 
 - objective, audience, language, and presentation context
 - visual direction and slide count
@@ -48,11 +33,20 @@ After the kickoff response and source analysis, present a concise Deck Plan cont
 - slide-by-slide title, purpose, and key message
 - planned image generation, or `none`
 - subagents enabled or disabled
-- editable PPTX and matching PDF deliverables
+- editable PPTX and coordinated high-quality PDF deliverables
 
-End by asking the user to approve or revise the Deck Plan. Stop and wait. Treat only an explicit approval as permission to build.
+Show `Subagents: disabled` by default and invite the user to enable specific proposed lanes in the same reply. End with: `Reply "approve and build" to use this plan, or send changes. If your changes are final, end with "build with these changes."`
+
+Stop and wait. Treat only explicit approval of the displayed plan as permission to build.
+
+### Incomplete request
+
+Ask at most three compact questions about only the missing material decisions. Include inferred defaults so `use the defaults` is a valid reply. Then present the combined Brief + Deck Plan and wait for approval.
+
+If the user gives unambiguous revisions and explicitly says `build with these changes`, update the plan and proceed without another mechanical confirmation. Corrections without an instruction to build are not approval.
 
 Do not ask for individual slide, image, or repair approval unless a new decision materially changes the approved direction.
+Do not repeat triage or approval for revisions to the same deck; resume from the earliest affected stage.
 
 ## Visible progress
 
@@ -68,7 +62,7 @@ Complete stages 1–3 before Deck Plan approval. Continue with stages 4–5 only
 
 ## Source analysis
 
-After kickoff confirmation, read the prompt and relevant sources. Extract the objective, audience, argument, evidence, desired tone, brand constraints, and presentation setting. Distinguish supplied facts, user claims, model inference, and proposed framing.
+During read-only triage, extract the objective, audience, argument, evidence, desired tone, brand constraints, and presentation setting. Distinguish supplied facts, user claims, model inference, and proposed framing.
 
 Route source formats through the most relevant installed capability:
 
@@ -84,7 +78,7 @@ Read [references/narrative-patterns.md](references/narrative-patterns.md) only w
 
 ## Optional subagents
 
-Use subagents only when the user enables them during kickoff. Read [references/subagents.md](references/subagents.md) before delegation.
+Use subagents only when the approved Deck Plan explicitly enables named lanes or the user directly requests them. Read [references/subagents.md](references/subagents.md) before delegation.
 
 Keep the main agent responsible for user interaction, Deck Plan, DeckSpec, image decisions, rendering, repair, cleanup, and final delivery. Continue in single-agent mode when subagents are unavailable.
 
@@ -99,12 +93,13 @@ After explicit Deck Plan approval:
 5. Convert the approved plan into DeckSpec version `1.0` using the executable schema.
 6. Record approval, source provenance, deterministic coordinates, editability, and a lowercase hyphenated deck slug.
 7. Read [references/visual-direction.md](references/visual-direction.md) and build one clear composition per slide.
-8. Generate only the original raster artwork specified in the approved plan.
-9. Run the bundled DeckSpec preflight exactly as documented in `runtime.md`; do not invent validation imports.
-10. Render the editable PPTX, 4K preview pages, matching PDF, and temporary QA reports.
-11. Read [references/qa-rubric.md](references/qa-rubric.md), inspect every preview, and repair the smallest failing scope.
-12. Re-run preflight and rendering after each repair.
-13. Verify final files, clean temporary artifacts, and verify that cleanup succeeded.
+8. Read [references/layout-components.md](references/layout-components.md) when the deck contains repeated cards, flows, or node-link diagrams.
+9. Generate only the original raster artwork specified in the approved plan.
+10. Run the bundled DeckSpec preflight exactly as documented in `runtime.md`; do not invent validation imports.
+11. Render the editable PPTX, 4K preview pages, coordinated PDF, and temporary QA reports.
+12. Read [references/qa-rubric.md](references/qa-rubric.md), inspect every preview, and repair the smallest failing scope.
+13. Re-run preflight and rendering after each repair.
+14. Verify the current output pair, clean temporary artifacts, and verify that cleanup succeeded.
 
 Keep DeckSpec, source extracts, generated assets, previews, QA reports, logs, and caches outside `out/`.
 
@@ -121,7 +116,7 @@ Keep DeckSpec, source extracts, generated assets, previews, QA reports, logs, an
 
 ## Review and repair
 
-Deterministic checks are necessary but not sufficient. Inspect every 3840x2160 preview for message clarity, hierarchy, alignment, spacing, text wrapping, contrast, crop safety, image quality, consistency, and narrative pacing.
+Deterministic checks are necessary but not sufficient. Inspect every 3840x2160 preview for message clarity, hierarchy, alignment, spacing, text wrapping, contrast, crop safety, image quality, consistency, and narrative pacing. The PDF uses these reviewed 4K pages; the editable PPTX uses native Office objects. Treat them as coordinated outputs from the same DeckSpec, not as guaranteed pixel-identical renders.
 
 Repair local defects without regenerating the whole deck. Rebuild and recheck after each repair. Stop after two unsuccessful automatic correction passes and report the exact blocker and affected slides.
 
@@ -132,7 +127,7 @@ Before delivery, confirm:
 - the PPTX and PDF exist and have matching slide counts, order, and 16:9 proportions
 - native text, tables, charts, and simple shapes remain editable
 - no blocking layout, image, contrast, crop, overflow, or consistency defect remains
-- `out/` contains only final `.pptx` and `.pdf` deliverables
+- the current deck slug owns exactly one final `.pptx` and one final `.pdf`; unrelated files in `out/` remain untouched
 - temporary artifacts have been cleaned when safe
 
 Return exactly one link to the final PPTX and one link to the final PDF. State that the deck follows the approved plan and was visually checked. Do not expose DeckSpec, previews, QA JSON, generated-image paths, temporary paths, setup commands, or internal renderer commands.

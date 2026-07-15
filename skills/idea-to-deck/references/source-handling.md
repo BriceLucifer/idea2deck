@@ -10,6 +10,8 @@ Read this reference when the request includes files, URLs, several sources, or a
 - Record where important claims, data, quotations, and images came from.
 - Prefer primary and authoritative sources when external verification is required.
 - Do not include material merely because it was supplied; use it only when it advances the approved objective.
+- Verify the required source capability before promising analysis. If it is unavailable, use an equivalent read-only extractor, ask for an accessible export, or proceed with a clearly stated limitation.
+- State the actual inspection method and limitations in the Deck Plan. Never claim visual inspection when only text extraction occurred.
 
 ## Text and Markdown
 
@@ -21,15 +23,15 @@ Inspect visually before use. Determine subject, relevance, composition, crop tol
 
 ## PDF
 
-Extract text and inspect relevant pages visually. Preserve page references for claims or figures. Do not rasterize an entire PDF into slides unless the user explicitly wants page reproductions.
+Use an installed PDF capability to extract text and inspect relevant pages visually. Preserve page references for claims or figures. Do not rasterize an entire PDF into slides unless the user explicitly wants page reproductions.
 
 ## DOCX
 
-Extract heading hierarchy, paragraphs, tables, captions, footnotes, and embedded media. Preserve semantic groupings, but redesign the content for presentation rather than copying document pages.
+Use an installed Documents capability to extract heading hierarchy, paragraphs, tables, captions, footnotes, and embedded media. Preserve semantic groupings, but redesign the content for presentation rather than copying document pages.
 
 ## Existing PPTX
 
-Inspect slide order, wording, notes, charts, tables, imagery, theme cues, and repeated layout patterns. Rebuild a new deck from extracted content and approved visual cues. Preserve the original file and do not promise object-level in-place editing.
+Use an installed Presentations capability to inspect slide order, wording, notes, charts, tables, imagery, theme cues, and repeated layout patterns. Rebuild a new deck from extracted content and approved visual cues. Preserve the original file and do not promise object-level in-place editing.
 
 ## Multiple sources
 

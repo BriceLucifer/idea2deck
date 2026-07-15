@@ -1,6 +1,6 @@
 {
   "name": "idea-to-deck-skill-runtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Codex skill runtime for turning multimodal ideas into editable PPTX and high-quality PDF decks.",
