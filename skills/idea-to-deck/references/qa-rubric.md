@@ -32,6 +32,7 @@ Read this reference before accepting any final build.
 
 - Alignment and spacing appear intentional.
 - No accidental overlap, clipping, crowding, or edge collision remains.
+- Diagram connectors terminate cleanly on their intended nodes in both directions.
 - Text wraps naturally inside its box.
 - The composition feels balanced at full-slide scale.
 

@@ -51,7 +51,11 @@ function shapeSvg(element, theme) {
   const fill = element.fill ? cssColor(element.fill) : "none";
   const stroke = cssColor(element.stroke, cssColor(theme.foreground));
   if (element.shape === "line") {
-    return `<line x1="${element.x}" y1="${element.y}" x2="${element.x + element.w}" y2="${element.y + element.h}" stroke="${stroke}" stroke-width="${element.strokeWidth}"/>`;
+    const x1 = element.flipH ? element.x + element.w : element.x;
+    const x2 = element.flipH ? element.x : element.x + element.w;
+    const y1 = element.flipV ? element.y + element.h : element.y;
+    const y2 = element.flipV ? element.y : element.y + element.h;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${element.strokeWidth}"/>`;
   }
   if (element.shape === "ellipse") {
     return `<ellipse cx="${element.x + element.w / 2}" cy="${element.y + element.h / 2}" rx="${element.w / 2}" ry="${element.h / 2}" fill="${fill}" stroke="${stroke}" stroke-width="${element.strokeWidth}"/>`;

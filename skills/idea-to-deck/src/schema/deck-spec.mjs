@@ -78,6 +78,8 @@ const shapeElement = z.object({
   stroke: z.string().optional(),
   strokeWidth: z.number().nonnegative().default(1),
   radius: z.number().nonnegative().default(0),
+  flipH: z.boolean().default(false),
+  flipV: z.boolean().default(false),
 });
 
 export const elementSchema = z.discriminatedUnion("type", [
@@ -135,6 +137,18 @@ export const deckSpecSchema = z.object({
 
 export function parseDeckSpec(input) {
   return deckSpecSchema.parse(input);
+}
+
+export function validateDeckSpec(input) {
+  const result = deckSpecSchema.safeParse(input);
+  if (result.success) return { valid: true, errors: [], deck: result.data };
+  return {
+    valid: false,
+    errors: result.error.issues.map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join(".") : "<root>";
+      return `${path}: ${issue.message}`;
+    }),
+  };
 }
 
 export function assertBuildApproved(input) {

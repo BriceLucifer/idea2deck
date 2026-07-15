@@ -85,6 +85,8 @@ function renderElement({ pptx, slide, element, theme }) {
     };
     slide.addShape(shapeMap[element.shape], {
       ...box,
+      flipH: element.flipH,
+      flipV: element.flipV,
       fill: element.fill ? { color: pptxColor(element.fill) } : { color: pptxColor(theme.background), transparency: 100 },
       line: { color: pptxColor(element.stroke, theme.foreground), pt: element.strokeWidth },
     });

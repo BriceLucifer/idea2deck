@@ -100,9 +100,11 @@ After explicit Deck Plan approval:
 6. Record approval, source provenance, deterministic coordinates, editability, and a lowercase hyphenated deck slug.
 7. Read [references/visual-direction.md](references/visual-direction.md) and build one clear composition per slide.
 8. Generate only the original raster artwork specified in the approved plan.
-9. Render the editable PPTX, 4K preview pages, matching PDF, and temporary QA reports.
-10. Read [references/qa-rubric.md](references/qa-rubric.md), inspect every preview, and repair the smallest failing scope.
-11. Verify final files and clean temporary artifacts.
+9. Run the bundled DeckSpec preflight exactly as documented in `runtime.md`; do not invent validation imports.
+10. Render the editable PPTX, 4K preview pages, matching PDF, and temporary QA reports.
+11. Read [references/qa-rubric.md](references/qa-rubric.md), inspect every preview, and repair the smallest failing scope.
+12. Re-run preflight and rendering after each repair.
+13. Verify final files, clean temporary artifacts, and verify that cleanup succeeded.
 
 Keep DeckSpec, source extracts, generated assets, previews, QA reports, logs, and caches outside `out/`.
 

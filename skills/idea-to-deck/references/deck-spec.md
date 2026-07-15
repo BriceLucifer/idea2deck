@@ -66,6 +66,8 @@ Every element needs exact logical coordinates, positive dimensions, a stable id,
 - Keep all boxes inside 1920x1080.
 - Use `cover` only when cropping is intentional and safe.
 - Use `contain` when the full source image must remain visible.
+- For `shape: "line"`, `x/y/w/h` define a positive bounding box. Use `flipV: true` for a bottom-left to top-right line and `flipH: true` to reverse the horizontal direction. Never use negative dimensions.
+- Place connector endpoints on the actual target boundaries; do not approximate a diagram with visibly floating or broken segments.
 
 ## Authoring order
 
