@@ -1,308 +1,136 @@
 ---
 name: idea-to-deck
-description: Convert ideas and multimodal source material into polished, editable 16:9 PowerPoint presentations and matching high-quality PDFs. Use when Codex needs to create, redesign, or rebuild a slide deck from text, Markdown, images, PDFs, DOCX files, or existing PPTX files; collaborate with the user on a deck plan; optionally generate original raster artwork; render native editable content with PptxGenJS; and perform deterministic plus visual QA. Rebuild existing PPTX files as new decks instead of editing their objects in place.
+description: Convert ideas and multimodal source material into polished, editable 16:9 PowerPoint presentations and matching high-quality PDFs. Use when Codex needs to create, redesign, or rebuild a deck from text, Markdown, images, PDFs, DOCX files, or existing PPTX files; begin every new deck with a short user kickoff; agree on a slide plan; optionally use subagents and image generation; render native content with PptxGenJS; and perform visual QA. Rebuild existing PPTX files as new decks instead of editing their objects in place.
 ---
 
 # Idea to Deck
 
-## Overview
+## Outcome
 
-Turn the user's ideas and sources into an approved narrative plan, then build an editable PowerPoint and a visually matching PDF. Keep the user experience simple: understand the material, propose one Deck Plan, wait for one approval, build autonomously, repair the smallest failing scope, and deliver two final files.
+Turn the user's materials into an approved deck story, an editable PowerPoint, and a visually matching PDF. Keep the interaction simple: ask one short kickoff, propose one Deck Plan, wait for approval, build autonomously, visually check the result, and deliver two files.
 
-Default to:
+Default to the user's language, a 16:9 canvas, ten slides, editable native content, high-quality raster assets, and final output in `<current-workspace>/out`.
 
-- the language used by the user
-- a 16:9 canvas
-- editable native text, tables, charts, and simple shapes
-- high-quality raster assets only where they improve communication
-- ten slides when the user gives no slide-count preference
-- speaker notes when they add presentation value
-- `<current-workspace>/out` for final deliverables
-- system temporary directories for all intermediate artifacts
+## Mandatory interaction gates
 
-Keep the workflow strict and the content adaptive. Do not force every deck into one narrative template, visual style, or slide sequence.
+Never build a new deck directly from the initial request. Every new deck task must pass both gates below.
 
-## Runtime and storage
+### Gate 1: kickoff confirmation
 
-Resolve `SKILL_DIR` as the directory containing this `SKILL.md`.
+Before planning or building, ask the user one concise kickoff question. Do not skip this gate even when the initial request appears complete.
 
-Use these locations:
+Infer sensible answers from the prompt and sources, then ask the user to confirm or correct:
 
 ```text
-Runtime entry:  <SKILL_DIR>/src/run.mjs
-Runtime setup:  <SKILL_DIR>/scripts/setup.mjs
-Schema:         <SKILL_DIR>/src/schema/deck-spec.mjs
-Final output:   <current-workspace>/out
-Intermediates:  <system-temp>/idea-to-deck-<task-id>/
+Before I plan the deck, please confirm or correct:
+
+1. Objective and audience: <inferred answer>
+2. Presentation context and length: <inferred answer>
+3. Visual direction: <inferred answer>
+4. Optional subagents: yes or no
+
+Reply "use these defaults" or change any item.
 ```
 
-Never write user deliverables into the installed Skill directory. Never write DeckSpec, source extracts, generated assets, previews, QA reports, logs, or caches into `out/`.
+Use a structured user-input tool when one is available; otherwise ask in plain text. Ask no more than four compact items. When the user already supplied an answer, show it for confirmation instead of asking them to repeat it.
 
-Treat the internal runner as an implementation detail. Do not present it as a user-facing CLI.
+Stop and wait for the reply. Do not inspect unnecessary sources, create DeckSpec, install dependencies, generate images, or render files before this response.
 
-## Runtime readiness
+Do not repeat the kickoff for revisions to the same deck. Resume from the earliest affected workflow stage instead.
 
-Before the first build in an installation, check the runtime:
+### Gate 2: Deck Plan approval
 
-```bash
-node "$SKILL_DIR/scripts/setup.mjs" --check
-```
+After the kickoff response and source analysis, present a concise Deck Plan containing:
 
-If dependencies are missing, explain that the local PptxGenJS runtime needs a one-time dependency installation and ask for permission before running:
+- objective, audience, language, and presentation context
+- visual direction and slide count
+- source summary and intended use
+- slide-by-slide title, purpose, and key message
+- planned image generation, or `none`
+- subagents enabled or disabled
+- editable PPTX and matching PDF deliverables
 
-```bash
-node "$SKILL_DIR/scripts/setup.mjs" --install
-```
+End by asking the user to approve or revise the Deck Plan. Stop and wait. Treat only an explicit approval as permission to build.
 
-Do not install dependencies before Deck Plan approval merely to inspect sources or prepare the plan. Require Node.js 20 or newer. Do not commit or distribute `node_modules`.
-
-## Non-negotiable interaction contract
-
-- Never render before the user explicitly approves the Deck Plan.
-- Do not treat the initial creation request as approval.
-- Ask only questions whose answers materially change the result.
-- Combine missing-information questions and the subagent choice into one message.
-- Do not ask the user to approve individual slides, generated images, or repair passes unless a new decision materially changes the approved direction.
-- Never start subagents unless the user opts in for the current deck.
-- Preserve all supplied source files unchanged.
-- Rebuild an existing PPTX into a new file; do not promise in-place object editing.
-- Deliver only the final PPTX and PDF unless the user explicitly asks for internal artifacts.
-
-## Capability delegation
-
-Use the most relevant installed capability for each source:
-
-- Read plain text and Markdown directly.
-- Inspect every supplied image visually before using it.
-- Use the PDF skill to read or visually inspect PDF sources when available.
-- Use the Documents skill for DOCX sources when available.
-- Use the Presentations skill to inspect existing PPTX sources when available.
-- Use `$imagegen` only for original raster artwork that materially improves the deck.
-
-Do not duplicate another Skill's workflow in this file. Let the delegated Skill own its format-specific parsing, rendering, or generation rules.
-
-Read [references/source-handling.md](references/source-handling.md) when the request contains files, URLs, several sources, or an existing deck.
+Do not ask for individual slide, image, or repair approval unless a new decision materially changes the approved direction.
 
 ## Visible progress
 
-Keep one visible progress plan for the task:
+Keep one visible plan with these stages:
 
-1. Understanding the materials.
-2. Shaping the deck story.
-3. Designing the slides.
-4. Rendering and checking the deck.
-5. Delivering the final files.
+1. Confirming the brief.
+2. Understanding the materials.
+3. Shaping the Deck Plan.
+4. Designing and rendering the slides.
+5. Reviewing and delivering the files.
 
-Before approval, complete only the first two steps. After approval, continue with the remaining steps. Mark a step complete only when its real decision or artifact exists.
+Complete stages 1–3 before Deck Plan approval. Continue with stages 4–5 only after approval. Mark a stage complete only when its real decision or artifact exists.
 
-For a revision request, resume from the earliest affected step instead of restarting the entire workflow.
+## Source analysis
 
-## Phase 1: understand the request
+After kickoff confirmation, read the prompt and relevant sources. Extract the objective, audience, argument, evidence, desired tone, brand constraints, and presentation setting. Distinguish supplied facts, user claims, model inference, and proposed framing.
 
-1. Read the user's prompt and all supplied sources.
-2. Extract the objective, audience, language, core argument, evidence, presentation setting, desired tone, brand constraints, requested length, and delivery expectations.
-3. Distinguish supplied facts from user opinions, model inference, and proposed framing.
-4. Infer reasonable defaults when the missing information will not materially change the result.
-5. Ask at most three concise questions when critical information is missing.
-6. Ask whether the user wants optional subagents for parallel source analysis, narrative review, and final visual QA. Skip this question when the user already gave a clear preference.
-7. Summarize how each source will be used. Do not promise to use every supplied item visually.
+Route source formats through the most relevant installed capability:
 
-Read [references/narrative-patterns.md](references/narrative-patterns.md) only when a known presentation type would help structure the story. Treat its patterns as starting points, never mandatory templates.
+- read text and Markdown directly
+- inspect supplied images visually
+- use the PDF skill for PDF sources when available
+- use the Documents skill for DOCX sources when available
+- use the Presentations skill for existing PPTX sources when available
 
-## Phase 2: present the Deck Plan
+Read [references/source-handling.md](references/source-handling.md) whenever files, URLs, several sources, or an existing deck are involved. Preserve every original source unchanged.
 
-Present a concise Deck Plan with:
+Read [references/narrative-patterns.md](references/narrative-patterns.md) only when a known presentation type helps shape the story. Use its patterns as options, not fixed templates.
 
-```text
-Objective
-Audience
-Language
-Presentation context
-Visual direction
-Slide count
-Subagents: enabled | disabled
+## Optional subagents
 
-Sources
-- source -> intended use
+Use subagents only when the user enables them during kickoff. Read [references/subagents.md](references/subagents.md) before delegation.
 
-Slides
-1. title -> purpose -> key message
-2. title -> purpose -> key message
-...
+Keep the main agent responsible for user interaction, Deck Plan, DeckSpec, image decisions, rendering, repair, cleanup, and final delivery. Continue in single-agent mode when subagents are unavailable.
 
-Planned image generation
-- slide -> asset -> communication purpose
-- or: none
+## Build after approval
 
-Deliverables
-- editable PPTX
-- matching PDF
-```
+After explicit Deck Plan approval:
 
-Use assertion-style titles when appropriate, so the outline communicates the argument rather than listing generic topics. Keep enough detail for the user to judge the story without exposing DeckSpec coordinates or implementation details.
-
-End by asking the user to approve or revise the Deck Plan. Stop the turn. Do not create DeckSpec, generate images, install runtime dependencies, or render files yet.
-
-## Optional subagent pipeline
-
-Use this section only after explicit opt-in for the current deck.
-
-Use no more than three bounded subagents:
-
-- **Source analyst:** extract facts, evidence, themes, and provenance from heterogeneous inputs.
-- **Narrative critic:** challenge argument order, audience fit, density, missing evidence, and redundancy.
-- **Visual QA reviewer:** inspect final preview images against the approved visual direction.
-
-Keep all delegated lanes read-only. Do not let subagents modify DeckSpec, write to `out/`, run competing renderers, or independently deliver a deck. Give them raw sources and minimum necessary context without presenting the parent's conclusions as ground truth.
-
-The parent agent must reconcile findings, own DeckSpec, decide image generation, run the renderer, repair defects, clean temporary artifacts, and deliver the files. If subagents are unavailable after opt-in, continue in single-agent mode and state that limitation briefly.
-
-## Phase 3: prepare the build
-
-After explicit approval:
-
-1. Resolve `SKILL_DIR` and the current workspace.
-2. Check runtime readiness and install dependencies only if required and permitted.
+1. Resolve `SKILL_DIR` as the folder containing this file.
+2. Read [references/runtime.md](references/runtime.md) and check runtime readiness.
 3. Create a dedicated system temporary directory.
 4. Read [references/deck-spec.md](references/deck-spec.md).
-5. Convert the approved plan into DeckSpec version `1.0` using the executable Zod schema.
-6. Set `approval.confirmed` to `true`, record the confirmation timestamp, and summarize what was approved.
-7. Give the deck a lowercase hyphenated slug.
-8. Record every source with its kind, intended use, and provenance.
-9. Associate extracted claims and assets with `sourceId` whenever possible.
-10. Keep the DeckSpec and all generated assets in the task temporary directory.
+5. Convert the approved plan into DeckSpec version `1.0` using the executable schema.
+6. Record approval, source provenance, deterministic coordinates, editability, and a lowercase hyphenated deck slug.
+7. Read [references/visual-direction.md](references/visual-direction.md) and build one clear composition per slide.
+8. Generate only the original raster artwork specified in the approved plan.
+9. Render the editable PPTX, 4K preview pages, matching PDF, and temporary QA reports.
+10. Read [references/qa-rubric.md](references/qa-rubric.md), inspect every preview, and repair the smallest failing scope.
+11. Verify final files and clean temporary artifacts.
 
-Use the 1920x1080 logical canvas. Give every element deterministic `x`, `y`, `w`, `h`, `zIndex`, editability, and source metadata.
+Keep DeckSpec, source extracts, generated assets, previews, QA reports, logs, and caches outside `out/`.
 
-## Content and narrative rules
+## Content and visual guardrails
 
-- Give every slide one clear communication purpose.
-- Prefer one dominant conclusion or composition per slide.
-- Write titles that reveal the point when the evidence supports it.
-- Preserve a coherent argument across slides instead of producing disconnected summaries.
+- Give every slide one communication purpose and one dominant conclusion or composition.
+- Adapt the narrative to the audience instead of forcing a universal slide sequence.
+- Keep claims faithful to their sources; never invent evidence, quotations, metrics, customers, or citations.
 - Split overloaded slides before shrinking type.
-- Remove low-value content instead of filling every available region.
-- Keep claims faithful to their sources and label inference when needed.
-- Never invent evidence, quotations, metrics, customers, or citations.
-- Adapt the narrative to the audience, context, and requested outcome.
+- Keep text, tables, charts, and simple shapes native and editable.
+- Use raster images only for photographs, textures, generated artwork, and complex visual scenes.
+- Use `$imagegen` only when original artwork materially improves communication.
+- Do not generate charts, tables, typography, UI, precise diagrams, or decorative filler as images.
 
-Do not impose a fixed slide sequence, bullet count, image count, or layout catalog.
+## Review and repair
 
-## Visual direction
+Deterministic checks are necessary but not sufficient. Inspect every 3840x2160 preview for message clarity, hierarchy, alignment, spacing, text wrapping, contrast, crop safety, image quality, consistency, and narrative pacing.
 
-Read [references/visual-direction.md](references/visual-direction.md) while translating the approved direction into the theme and slide compositions.
+Repair local defects without regenerating the whole deck. Rebuild and recheck after each repair. Stop after two unsuccessful automatic correction passes and report the exact blocker and affected slides.
 
-Keep text, tables, charts, and simple shapes native and editable. Use raster images for photographs, generated artwork, textures, and complex visual scenes only.
+## Delivery contract
 
-Default typography guardrails:
+Before delivery, confirm:
 
-- deck title: 50pt or larger
-- slide title: 35pt or larger
-- body: 18pt or larger where practical; never below 16pt
-- source notes: readable at presentation scale
+- the PPTX and PDF exist and have matching slide counts, order, and 16:9 proportions
+- native text, tables, charts, and simple shapes remain editable
+- no blocking layout, image, contrast, crop, overflow, or consistency defect remains
+- `out/` contains only final `.pptx` and `.pdf` deliverables
+- temporary artifacts have been cleaned when safe
 
-Prefer shortening, reflowing, changing layout, or splitting a slide before reducing font size.
-
-## Image generation
-
-Use `$imagegen` for original cover art, editorial illustration, atmospheric backgrounds, conceptual scenes, or other raster artwork with a defined communication role.
-
-Before generation:
-
-1. Define the asset's purpose and placement.
-2. Match the approved visual direction, palette, mood, and composition.
-3. Reserve negative space for overlaid text when required.
-4. Choose an aspect ratio suitable for the target box.
-5. Avoid readable text, logos, UI, charts, and precise diagrams inside generated imagery.
-
-Inspect each selected generated image before using it. Reject identity drift, artifacts, accidental text, unsuitable cropping, weak subject placement, inconsistent style, or insufficient resolution.
-
-Do not use image generation for editable charts, tables, typography, icons, simple diagrams, or decorative filler. If `$imagegen` is unavailable, continue with native shapes, typography, source assets, or an image-free composition unless the approved plan requires a specific original image.
-
-## Rendering
-
-Build into a temporary review directory first. Invoke the internal runtime with the approved DeckSpec, current workspace `out/`, and temporary review directory.
-
-The renderer must produce:
-
-- an editable PPTX through PptxGenJS
-- 3840x2160 preview images
-- a PDF assembled from the reviewed preview pages
-- temporary deterministic QA reports
-
-Use PptxGenJS as the canonical editable representation and the high-resolution preview as the canonical visual review surface.
-
-## Deterministic and visual QA
-
-Read [references/qa-rubric.md](references/qa-rubric.md) before accepting a build.
-
-Run deterministic checks for:
-
-- schema validity and plan approval
-- missing or damaged images
-- insufficient effective image resolution
-- elements outside the canvas
-- probable text overflow
-- unintended element overlap
-- unsafe image cropping
-- invalid PPTX structure
-- PPTX/PDF page count and order mismatch
-- unexpected files in `out/`
-
-Then inspect every preview at full size for:
-
-- hierarchy and message clarity
-- alignment, spacing, and balance
-- text wrapping and density
-- contrast and legibility
-- crop safety and image quality
-- visual consistency across slides
-- narrative continuity and pacing
-- source-note readability
-
-Automated checks are necessary but not sufficient. A deck does not pass merely because the code reports no errors.
-
-## Repair workflow
-
-Repair the smallest failing scope:
-
-1. Shorten or clarify content.
-2. Reflow or resize the responsible element.
-3. Change the local composition.
-4. Split the slide when the content cannot remain legible.
-5. Replace or recrop the responsible image.
-6. Regenerate artwork only when the artwork itself is defective.
-
-Rebuild and recheck after every repair pass. Perform no more than two automatic correction passes. After two unsuccessful passes, stop and report the exact blocker, affected slides, and the decision required from the user.
-
-Do not regenerate the whole deck for one local defect. Do not hide overflow by shrinking text below the minimum size.
-
-## Cleanup and delivery
-
-Before delivery:
-
-1. Confirm that both expected final files exist.
-2. Confirm that PPTX and PDF have matching slide counts, order, and 16:9 proportions.
-3. Confirm that native text, tables, charts, and simple shapes remain editable.
-4. Confirm that `out/` contains only `.pptx` and `.pdf` files.
-5. Remove temporary DeckSpec, extracts, generated assets, previews, QA reports, logs, and caches when safe.
-6. Preserve the user's original sources unchanged.
-
-If the build fails, clean temporary material when it is no longer useful, but retain the minimum diagnostic information needed to explain the blocker.
-
-## Acceptance criteria
-
-- The user explicitly approved the Deck Plan.
-- The deck follows the approved objective, audience, language, length, and visual direction.
-- Every slide has a clear purpose and readable hierarchy.
-- Claims and assets preserve source provenance where possible.
-- PPTX native content is editable.
-- PDF visually matches the reviewed deck.
-- Every preview has passed deterministic and visual review.
-- No blocking overflow, bounds, image, overlap, crop, contrast, or consistency defect remains.
-- Final output contains the expected PPTX and PDF for the deck slug and no non-deliverable artifacts.
-- Intermediate artifacts have not leaked into `out/`.
-
-## Final response
-
-State that the deck was generated from the approved plan and visually checked. Return exactly one link to the final PPTX and one link to the final PDF. Do not expose DeckSpec, preview PNGs, QA JSON, generated-image paths, temporary paths, setup commands, or internal renderer commands.
+Return exactly one link to the final PPTX and one link to the final PDF. State that the deck follows the approved plan and was visually checked. Do not expose DeckSpec, previews, QA JSON, generated-image paths, temporary paths, setup commands, or internal renderer commands.

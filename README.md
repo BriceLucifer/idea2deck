@@ -2,7 +2,7 @@
 
 A self-contained Codex Skill for turning text, Markdown, images, PDFs, DOCX files, and existing presentations into editable 16:9 PowerPoint decks and matching high-quality PDFs.
 
-The Skill plans the story with the user, waits for explicit Deck Plan approval, optionally uses subagents and image generation, renders native PowerPoint content with PptxGenJS, and performs deterministic plus visual QA.
+Every new deck starts with a short kickoff confirmation covering the inferred objective, audience, presentation context, length, visual direction, and optional subagents. The Skill then presents a slide-by-slide Deck Plan, waits for explicit approval, optionally uses image generation, renders native PowerPoint content with PptxGenJS, and performs deterministic plus visual QA.
 
 ## Install for Codex
 
